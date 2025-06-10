@@ -1,4 +1,33 @@
-<!DOCTYPE html>
+        // Helper function to get property values with more field variations
+        function getProperty(properties, fieldNames) {
+            for (var i = 0; i < fieldNames.length; i++) {
+                var field = fieldNames[i];
+                if (properties[field] !== undefined && 
+                    properties[field] !== null && 
+                    properties[field] !== '' &&
+                    properties[field] !== 'NULL' &&
+                    properties[field] !== 0) {
+                    return properties[field];
+                }
+            }
+            return 'N/A';
+        }
+
+        // Enhanced property finder for debugging
+        function findTreeProperties(properties) {
+            var result = {};
+            var keys = Object.keys(properties);
+            
+            // Find ID field
+            result.id = getProperty(properties, [
+                'Nr. identi', 'Nr.Identi', 'NrIdentifi', 'Nr_ID', 'ID', 'id', 'Nr_Identificator',
+                'Numar_ID', 'Nr', 'Number', 'Identificator'
+            ]);
+            
+            // Find Species field
+            result.species = getProperty(properties, [
+                'Specie', 'specie', 'Species', 'Denumire', 'Denumire_specie', 'Tip_specie',
+                'Nume_specie', '<!DOCTYPE html>
 <html lang="ro">
 <head>
     <meta charset="UTF-8">
@@ -485,33 +514,56 @@
             }
         ];
 
-        // Helper function to get property values
+        // Helper function to get property values with debug logging
         function getProperty(properties, fieldNames) {
             for (var i = 0; i < fieldNames.length; i++) {
-                if (properties[fieldNames[i]] !== undefined && 
-                    properties[fieldNames[i]] !== null && 
-                    properties[fieldNames[i]] !== '') {
-                    return properties[fieldNames[i]];
+                var field = fieldNames[i];
+                if (properties.hasOwnProperty(field) && 
+                    properties[field] !== undefined && 
+                    properties[field] !== null && 
+                    properties[field] !== '' &&
+                    properties[field] !== 'NULL') {
+                    return properties[field];
                 }
             }
             return 'N/A';
         }
 
-        // Create popup content
+        // Create popup content with enhanced field detection
         function createPopupContent(properties, layerName) {
             var content = '<div class="popup-content">';
             content += '<h4>' + layerName + '</h4>';
             content += '<table>';
 
+            // Debug: Log all properties for Copaci layer
+            if (layerName === 'Copaci') {
+                console.log('Copaci Properties:', properties);
+                console.log('Available fields:', Object.keys(properties));
+            }
+
             switch(layerName) {
                 case 'Copaci':
-                    content += '<tr><td>ID:</td><td>' + getProperty(properties, ['Nr_ID', 'ID', 'id']) + '</td></tr>';
-                    content += '<tr><td>Specie:</td><td>' + getProperty(properties, ['Specie', 'specie']) + '</td></tr>';
-                    content += '<tr><td>Diametru:</td><td>' + getProperty(properties, ['Diametru_trunchi_cm', 'Diametru']) + ' cm</td></tr>';
-                    content += '<tr><td>Înălțime:</td><td>' + getProperty(properties, ['Inaltime_m', 'Inaltime']) + ' m</td></tr>';
-                    content += '<tr><td>Evaluare:</td><td>' + getProperty(properties, ['Evaluarea_starii_de_viabilitate', 'Evaluare']) + '</td></tr>';
-                    content += '<tr><td>Coordonata X:</td><td>' + getProperty(properties, ['x', 'X']) + '</td></tr>';
-                    content += '<tr><td>Coordonata Y:</td><td>' + getProperty(properties, ['y', 'Y']) + '</td></tr>';
+                    // Use exact field names from your GeoJSON
+                    var id = getProperty(properties, ['Nr ID', 'ID', 'id']);
+                    content += '<tr><td>ID:</td><td>' + id + '</td></tr>';
+                    
+                    var species = getProperty(properties, ['Specie', 'specie']);
+                    content += '<tr><td>Specie:</td><td>' + species + '</td></tr>';
+                    
+                    var diameter = getProperty(properties, ['Diametru t', 'Diametru', 'diametru']);
+                    content += '<tr><td>Diametru:</td><td>' + diameter + (diameter !== 'N/A' ? ' cm' : '') + '</td></tr>';
+                    
+                    var height = getProperty(properties, ['Inaltime (', 'Inaltime', 'inaltime']);
+                    content += '<tr><td>Înălțime:</td><td>' + height + (height !== 'N/A' ? ' m' : '') + '</td></tr>';
+                    
+                    var evaluation = getProperty(properties, ['Evaluarea', 'evaluare']);
+                    content += '<tr><td>Evaluare:</td><td>' + evaluation + '</td></tr>';
+                    
+                    var coordX = getProperty(properties, ['x', 'X']);
+                    if (coordX !== 'N/A') content += '<tr><td>Coordonata X:</td><td>' + coordX + '</td></tr>';
+                    
+                    var coordY = getProperty(properties, ['y', 'Y']);
+                    if (coordY !== 'N/A') content += '<tr><td>Coordonata Y:</td><td>' + coordY + '</td></tr>';
                     break;
 
                 case 'Aliniament Infrastructura':
