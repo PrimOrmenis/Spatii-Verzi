@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SV Ormenis - Sistem Informatic Geografic</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        
+        /* Mobile-optimized Legend */
+        .legend {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            font-size: 14px;
+            max-width: 320px;
+            max-height: 60vh;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .legend-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px 12px 0 0;
+            min-height: 24px;
+        }
+        
+        .legend-header:hover {
+            background: #e9ecef;
+        }
+        
+        .legend h4 {
+            margin: 0;
+            color: #333;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .legend-toggle {
+            font-size: 18px;
+            color: #666;
+            transition: transform 0.3s ease;
+        }
+        
+        .legend-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .legend-content {
+            padding: 16px 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+        
+        .legend-content.collapsed {
+            max-height: 0;
+            padding: 0 20px;
+            overflow: hidden;
+        }
+        
+        .legend-item {
+            margin: 12px 0;
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            min-height: 20px;
+        }
+        
+        .legend-item:hover {
+            background: rgba(76, 175, 80, 0.1);
+            transform: translateX(2px);
+        }
+        
+        .legend-color {
+            width: 24px;
+            height: 18px;
+            margin-right: 14px;
+            border: 2px solid;
+            border-radius: 4px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .legend-text {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+        
+        /* Mobile-optimized Controls */
+        .control-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 14px 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            margin: 8px 0;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .control-panel input, .control-panel button {
+            padding: 14px 16px;
+            margin: 4px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .control-panel button {
+            background: linear-gradient(135deg, #ffffff, #f8f9fa);
+            cursor: pointer;
+            min-width: 52px;
+            min-height: 52px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .control-panel button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+        
+        .control-panel button:hover::before {
+            left: 100%;
+        }
+        
+        .control-panel button:hover {
+            background: linear-gradient(135deg, #f0f0f0, #e8e8e8);
+            border-color: #bbb;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .control-panel button.active {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border-color: #45a049;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+        
+        .control-panel button.active:hover {
+            background: linear-gradient(135deg, #45a049, #3d8b40);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
+        }
+        
+        .search-input {
+            width: 220px;
+            font-size: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(5px);
+        }
+        
+        .search-input:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+            background: white;
+        }
+        
+        /* Mobile-optimized Popup */
+        .popup-content {
+            max-width: 300px;
+        }
+        
+        .popup-content table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 13px;
+        }
+        
+        .popup-content td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #eee;
+            word-wrap: break-word;
+        }
+        
+        .popup-content td:first-child {
+            font-weight: bold;
+            background: #f5f5f5;
+            min-width: 80px;
+        }
+        
+        .popup-content h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 16px;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 5px;
+        }
+        
+        /* Responsive Design */
+        @media screen and (max-width: 768px) {
+            .legend {
+                max-width: calc(100vw - 30px);
+                max-height: 55vh;
+                margin: 15px;
+                bottom: 80px !important;
+                right: 15px !important;
+            }
+            
+            .legend-content {
+                max-height: 320px;
+                padding: 14px 18px;
+            }
+            
+            .legend-item {
+                margin: 10px 0;
+                padding: 10px 14px;
+                min-height: 24px;
+            }
+            
+            .legend-color {
+                width: 26px;
+                height: 20px;
+                margin-right: 16px;
+            }
+            
+            .legend-text {
+                font-size: 15px;
+            }
+            
+            .control-panel {
+                max-width: calc(100vw - 30px);
+                margin: 8px 15px;
+                padding: 16px 18px;
+            }
+            
+            .control-panel input, .control-panel button {
+                margin: 4px 2px;
+                padding: 16px 18px;
+                font-size: 16px;
+                min-height: 56px;
+                border-radius: 12px;
+            }
+            
+            .search-input {
+                width: calc(100% - 40px);
+                max-width: 320px;
+            }
+            
+            .popup-content {
+                max-width: 280px;
+                font-size: 13px;
+            }
+            
+            .popup-content td {
+                padding: 6px 8px;
+            }
+            
+            /* Better spacing for measurement buttons */
+            .control-panel button {
+                margin: 6px 4px;
+                min-width: 60px;
+                font-size: 14px;
+            }
+            
+            /* Stack buttons vertically on very small screens */
+            @media screen and (max-width: 480px) {
+                .legend {
+                    bottom: 100px !important;
+                    left: 15px !important;
+                    right: 15px !important;
+                    max-width: calc(100vw - 30px);
+                }
+                
+                .control-panel {
+                    margin: 8px 10px;
+                }
+                
+                .control-panel button {
+                    display: block;
+                    width: calc(100% - 16px);
+                    margin: 6px 8px;
+                    min-height: 60px;
+                    font-size: 16px;
+                }
+                
+                .legend {
+                    max-height: 45vh;
+                }
+                
+                .legend-content {
+                    max-height: 250px;
+                }
+                
+                .search-input {
+                    width: calc(100% - 16px);
+                    margin: 6px 8px;
+                }
+            }
+        }
+        
+        /* High DPI / Retina Display Support */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .legend, .control-panel {
+                box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+            }
+        }
+        
+        /* Touch-friendly hover states */
+        @media (hover: none) and (pointer: coarse) {
+            .legend-item:hover {
+                background: transparent;
+            }
+            
+            .control-panel button:hover {
+                background: white;
+                border-color: #ddd;
+            }
+        }
+        
+        /* Accessibility improvements */
+        .legend-header:focus,
+        .control-panel button:focus,
+        .search-input:focus {
+            outline: 2px solid #4CAF50;
+            outline-offset: 2px;
+        }
+        
+        /* Custom scrollbar for webkit browsers */
+        .legend-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .legend-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .legend-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .legend-content::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map with maximum zoom capabilities
+        var map = L.map('map', {
+            maxZoom: 22,
+            zoomControl: true
+        }).setView([46.7712, 23.6236], 15);
+
+        // Add high-resolution satellite basemap
+        var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 22,
+            attribution: '© Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+        }).addTo(map);
+
+        // Alternative basemap
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 22,
+            attribution: '© OpenStreetMap contributors'
+        });
+
+        var baseLayers = {
+            "Satellite": satellite,
+            "OpenStreetMap": osm
+        };
+
+        // Layer storage
+        var layerGroups = {};
+        var measurementLayer = L.layerGroup().addTo(map);
+        var isDistanceMeasuring = false;
+        var isAreaMeasuring = false;
+        var measurePoints = [];
+
+        // Layer configurations with VERY distinct styling - Updated for SV Ormenis layers
+        var layerConfigs = [
+            {
+                name: 'Copaci',
+                file: 'data/Copaci.geojson',
+                color: '#006400',
+                fillColor: '#00FF00',
+                radius: 8,
+                fillOpacity: 0.9,
+                weight: 3,
+                type: 'point'
+            },
+            {
+                name: 'Aliniament Infrastructura',
+                file: 'data/Aliniament_infrastructura.geojson',
+                color: '#FF6347',
+                fillColor: '#FF6347',
+                fillOpacity: 0.7,
+                weight: 4
+            },
+            {
+                name: 'SVD Aliniament Infrastructura',
+                file: 'data/SVD_Aliniament_infrastructura.geojson',
+                color: '#FF8C00',
+                fillColor: '#FF8C00',
+                fillOpacity: 0.8,
+                weight: 5
+            },
+            {
+                name: 'Protecție Apă',
+                file: 'data/Protectie_apa.geojson',
+                color: '#4169E1',
+                fillColor: '#87CEEB',
+                fillOpacity: 0.6,
+                weight: 3
+            },
+            {
+                name: 'Vegetație Spontană',
+                file: 'data/Vegetatie_spontana.geojson',
+                color: '#32CD32',
+                fillColor: '#98FB98',
+                fillOpacity: 0.6,
+                weight: 2
+            },
+            {
+                name: 'Parcuri & Grădini',
+                file: 'data/Parcuri_gradini.geojson',
+                color: '#228B22',
+                fillColor: '#90EE90',
+                fillOpacity: 0.7,
+                weight: 2
+            },
+            {
+                name: 'Zone Verzi Specializate',
+                file: 'data/Zone_verzi_specializate.geojson',
+                color: '#7FFF00',
+                fillColor: '#F0FFF0',
+                fillOpacity: 0.6,
+                weight: 2
+            },
+            {
+                name: 'Clădiri Active',
+                file: 'data/Cladiri_active.geojson',
+                color: '#8B4513',
+                fillColor: '#DEB887',
+                fillOpacity: 0.8,
+                weight: 2
+            },
+            {
+                name: 'Terenuri Active',
+                file: 'data/Terenuri_active.geojson',
+                color: '#DAA520',
+                fillColor: '#F0E68C',
+                fillOpacity: 0.6,
+                weight: 2
+            }
+        ];
+
+        // Helper function to get property values
+        function getProperty(properties, fieldNames) {
+            for (var i = 0; i < fieldNames.length; i++) {
+                if (properties[fieldNames[i]] !== undefined && 
+                    properties[fieldNames[i]] !== null && 
+                    properties[fieldNames[i]] !== '') {
+                    return properties[fieldNames[i]];
+                }
+            }
+            return 'N/A';
+        }
+
+        // Create popup content
+        function createPopupContent(properties, layerName) {
+            var content = '<div class="popup-content">';
+            content += '<h4>' + layerName + '</h4>';
+            content += '<table>';
+
+            switch(layerName) {
+                case 'Copaci':
+                    content += '<tr><td>ID:</td><td>' + getProperty(properties, ['Nr_ID', 'ID', 'id']) + '</td></tr>';
+                    content += '<tr><td>Specie:</td><td>' + getProperty(properties, ['Specie', 'specie']) + '</td></tr>';
+                    content += '<tr><td>Diametru:</td><td>' + getProperty(properties, ['Diametru_trunchi_cm', 'Diametru']) + ' cm</td></tr>';
+                    content += '<tr><td>Înălțime:</td><td>' + getProperty(properties, ['Inaltime_m', 'Inaltime']) + ' m</td></tr>';
+                    content += '<tr><td>Evaluare:</td><td>' + getProperty(properties, ['Evaluarea_starii_de_viabilitate', 'Evaluare']) + '</td></tr>';
+                    content += '<tr><td>Coordonata X:</td><td>' + getProperty(properties, ['x', 'X']) + '</td></tr>';
+                    content += '<tr><td>Coordonata Y:</td><td>' + getProperty(properties, ['y', 'Y']) + '</td></tr>';
+                    break;
+
+                case 'Aliniament Infrastructura':
+                case 'SVD Aliniament Infrastructura':
+                    content += '<tr><td>ID:</td><td>' + getProperty(properties, ['Nr_ID', 'ID', 'id']) + '</td></tr>';
+                    content += '<tr><td>Destinație:</td><td>' + getProperty(properties, ['Destinatie', 'Destinație']) + '</td></tr>';
+                    content += '<tr><td>Categorie:</td><td>' + getProperty(properties, ['CatFolosin', 'Categorie']) + '</td></tr>';
+                    content += '<tr><td>Suprafață:</td><td>' + getProperty(properties, ['Suprafata_mp', 'Suprafata']) + ' mp</td></tr>';
+                    content += '<tr><td>Mod Admin:</td><td>' + getProperty(properties, ['ModAdmin', 'Administrare']) + '</td></tr>';
+                    content += '<tr><td>Tip Proprietate:</td><td>' + getProperty(properties, ['TipProprie', 'Proprietate']) + '</td></tr>';
+                    break;
+
+                case 'Protecție Apă':
+                    content += '<tr><td>ID:</td><td>' + getProperty(properties, ['Nr_ID', 'ID', 'id']) + '</td></tr>';
+                    content += '<tr><td>Destinație:</td><td>' + getProperty(properties, ['Destinatie', 'Destinație']) + '</td></tr>';
+                    content += '<tr><td>Suprafață:</td><td>' + getProperty(properties, ['Suprafata_mp', 'Suprafata']) + ' mp</td></tr>';
+                    content += '<tr><td>Mod Admin:</td><td>' + getProperty(properties, ['ModAdmin', 'Administrare']) + '</td></tr>';
+                    content += '<tr><td>Tip Proprietate:</td><td>' + getProperty(properties, ['TipProprie', 'Proprietate']) + '</td></tr>';
+                    break;
+
+                case 'Clădiri Active':
+                case 'Terenuri Active':
+                    content += '<tr><td>ID Corp:</td><td>' + getProperty(properties, ['ID_Corp', 'ID', 'id']) + '</td></tr>';
+                    content += '<tr><td>Suprafață:</td><td>' + getProperty(properties, ['Suprafata_mp', 'Suprafata']) + ' mp</td></tr>';
+                    content += '<tr><td>Layer:</td><td>' + getProperty(properties, ['Layer', 'layer']) + '</td></tr>';
+                    break;
+
+                default:
+                    // Generic handling for other layers
+                    var id = getProperty(properties, ['Nr_ID', 'ID', 'id']);
+                    if (id !== 'N/A') content += '<tr><td>ID:</td><td>' + id + '</td></tr>';
+                    
+                    var dest = getProperty(properties, ['Destinatie', 'Destinație']);
+                    if (dest !== 'N/A') content += '<tr><td>Destinație:</td><td>' + dest + '</td></tr>';
+                    
+                    var cat = getProperty(properties, ['CatFolosin', 'Categorie']);
+                    if (cat !== 'N/A') content += '<tr><td>Categorie:</td><td>' + cat + '</td></tr>';
+                    
+                    var area = getProperty(properties, ['Suprafata_mp', 'Suprafata']);
+                    if (area !== 'N/A') content += '<tr><td>Suprafață:</td><td>' + area + ' mp</td></tr>';
+                    
+                    var prop = getProperty(properties, ['TipProprie', 'Proprietate']);
+                    if (prop !== 'N/A') content += '<tr><td>Proprietate:</td><td>' + prop + '</td></tr>';
+                    
+                    var admin = getProperty(properties, ['ModAdmin', 'Administrare']);
+                    if (admin !== 'N/A') content += '<tr><td>Administrare:</td><td>' + admin + '</td></tr>';
+                    break;
+            }
+
+            content += '</table></div>';
+            return content;
+        }
+
+        // Load layer function with proper styling
+        function loadLayer(config) {
+            fetch(config.file)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Loading ' + config.name + ': ' + data.features.length + ' features');
+                    
+                    var layer = L.geoJSON(data, {
+                        style: function(feature) {
+                            return {
+                                color: config.color,
+                                fillColor: config.fillColor,
+                                weight: config.weight,
+                                opacity: 1,
+                                fillOpacity: config.fillOpacity
+                            };
+                        },
+                        pointToLayer: function(feature, latlng) {
+                            if (config.type === 'point') {
+                                return L.circleMarker(latlng, {
+                                    radius: config.radius,
+                                    fillColor: config.fillColor,
+                                    color: config.color,
+                                    weight: config.weight,
+                                    opacity: 1,
+                                    fillOpacity: config.fillOpacity
+                                });
+                            }
+                        },
+                        onEachFeature: function(feature, layer) {
+                            var popup = createPopupContent(feature.properties, config.name);
+                            layer.bindPopup(popup);
+                            
+                            // Hover effects
+                            layer.on('mouseover', function(e) {
+                                if (config.type === 'point') {
+                                    e.target.setStyle({
+                                        radius: config.radius + 3,
+                                        weight: config.weight + 1
+                                    });
+                                } else {
+                                    e.target.setStyle({
+                                        weight: config.weight + 2
+                                    });
+                                }
+                            });
+                            
+                            layer.on('mouseout', function(e) {
+                                if (config.type === 'point') {
+                                    e.target.setStyle({
+                                        radius: config.radius,
+                                        weight: config.weight
+                                    });
+                                } else {
+                                    e.target.setStyle({
+                                        weight: config.weight
+                                    });
+                                }
+                            });
+                        }
+                    });
+                    
+                    layerGroups[config.name] = layer;
+                    layer.addTo(map);
+                    
+                    // Center on first layer
+                    if (Object.keys(layerGroups).length === 1) {
+                        map.fitBounds(layer.getBounds());
+                        map.setZoom(15);
+                    }
+                })
+                .catch(error => console.error('Error loading ' + config.name + ':', error));
+        }
+
+        // Load all layers
+        layerConfigs.forEach(loadLayer);
+
+        // Add search control
+        var searchControl = L.control({position: 'topleft'});
+        searchControl.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'control-panel');
+            div.innerHTML = '<input type="text" id="searchInput" class="search-input" placeholder="Căutare (ID, destinație...)"/>';
+            
+            L.DomEvent.disableClickPropagation(div);
+            return div;
+        };
+        searchControl.addTo(map);
+
+        // Add measurement control
+        var measureControl = L.control({position: 'topleft'});
+        measureControl.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'control-panel');
+            div.innerHTML = 
+                '<button id="distanceBtn">📏 Distanță</button>' +
+                '<button id="areaBtn">📐 Suprafață</button>' +
+                '<button id="clearBtn">🗑️ Șterge</button>';
+            
+            L.DomEvent.disableClickPropagation(div);
+            return div;
+        };
+        measureControl.addTo(map);
+
+        // Add collapsible legend with improved positioning
+        var legend = L.control({position: 'bottomright'});
+        legend.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'legend');
+            
+            // Create collapsible header
+            div.innerHTML = 
+                '<div class="legend-header" id="legendHeader">' +
+                '<h4>SV Ormenis - GIS</h4>' +
+                '<span class="legend-toggle" id="legendToggle">▼</span>' +
+                '</div>' +
+                '<div class="legend-content" id="legendContent">';
+            
+            // Add layer items with improved styling
+            layerConfigs.forEach(function(config) {
+                var icon = config.type === 'point' ? '●' : '■';
+                div.innerHTML += 
+                    '<div class="legend-item">' +
+                    '<span class="legend-color" style="background-color:' + config.fillColor + ';border-color:' + config.color + ';">' + icon + '</span>' +
+                    '<span class="legend-text">' + config.name + '</span>' +
+                    '</div>';
+            });
+            
+            div.innerHTML += '</div>';
+            
+            // Add collapse functionality
+            L.DomEvent.disableClickPropagation(div);
+            
+            return div;
+        };
+        legend.addTo(map);
+
+        // Setup legend collapse functionality with improved mobile handling
+        function setupLegendCollapse() {
+            var legendHeader = document.getElementById('legendHeader');
+            var legendContent = document.getElementById('legendContent');
+            var legendToggle = document.getElementById('legendToggle');
+            
+            if (legendHeader && legendContent && legendToggle) {
+                // Check if mobile device and auto-collapse
+                var isMobile = window.innerWidth <= 768;
+                if (isMobile) {
+                    legendContent.classList.add('collapsed');
+                    legendToggle.classList.add('collapsed');
+                }
+                
+                legendHeader.addEventListener('click', function() {
+                    legendContent.classList.toggle('collapsed');
+                    legendToggle.classList.toggle('collapsed');
+                    
+                    // Add haptic feedback on mobile
+                    if ('vibrate' in navigator) {
+                        navigator.vibrate(50);
+                    }
+                });
+                
+                // Handle window resize
+                window.addEventListener('resize', function() {
+                    var nowMobile = window.innerWidth <= 768;
+                    if (nowMobile && !isMobile) {
+                        // Switched to mobile - collapse legend
+                        legendContent.classList.add('collapsed');
+                        legendToggle.classList.add('collapsed');
+                    }
+                    isMobile = nowMobile;
+                });
+            }
+        }
+
+        // Search functionality
+        function setupSearch() {
+            var searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    var term = e.target.value.toLowerCase();
+                    if (term.length < 2) return;
+                    
+                    Object.keys(layerGroups).forEach(function(layerName) {
+                        layerGroups[layerName].eachLayer(function(layer) {
+                            if (layer.feature && layer.feature.properties) {
+                                var searchText = JSON.stringify(layer.feature.properties).toLowerCase();
+                                
+                                if (searchText.includes(term)) {
+                                    // Highlight and zoom to found feature
+                                    layer.setStyle({color: '#ff0000', weight: 6});
+                                    layer.openPopup();
+                                    
+                                    if (layer.getBounds) {
+                                        map.fitBounds(layer.getBounds());
+                                    } else if (layer.getLatLng) {
+                                        map.setView(layer.getLatLng(), 18);
+                                    }
+                                } else {
+                                    // Reset style
+                                    var config = layerConfigs.find(c => c.name === layerName);
+                                    if (config) {
+                                        layer.setStyle({
+                                            color: config.color,
+                                            weight: config.weight
+                                        });
+                                    }
+                                }
+                            }
+                        });
+                    });
+                });
+            }
+        }
+
+        // Measurement functionality
+        function setupMeasurement() {
+            var distanceBtn = document.getElementById('distanceBtn');
+            var areaBtn = document.getElementById('areaBtn');
+            var clearBtn = document.getElementById('clearBtn');
+            
+            function resetMeasurement() {
+                isDistanceMeasuring = false;
+                isAreaMeasuring = false;
+                measurePoints = [];
+                map.getContainer().style.cursor = '';
+                
+                if (distanceBtn) distanceBtn.classList.remove('active');
+                if (areaBtn) areaBtn.classList.remove('active');
+            }
+            
+            if (distanceBtn) {
+                distanceBtn.addEventListener('click', function() {
+                    resetMeasurement();
+                    isDistanceMeasuring = true;
+                    this.classList.add('active');
+                    map.getContainer().style.cursor = 'crosshair';
+                });
+            }
+            
+            if (areaBtn) {
+                areaBtn.addEventListener('click', function() {
+                    resetMeasurement();
+                    isAreaMeasuring = true;
+                    this.classList.add('active');
+                    map.getContainer().style.cursor = 'crosshair';
+                });
+            }
+            
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function() {
+                    measurementLayer.clearLayers();
+                    resetMeasurement();
+                });
+            }
+            
+            // Map click handler for measurements
+            map.on('click', function(e) {
+                if (isDistanceMeasuring || isAreaMeasuring) {
+                    measurePoints.push(e.latlng);
+                    
+                    // Add point marker
+                    L.circleMarker(e.latlng, {
+                        color: 'red',
+                        radius: 4,
+                        fillOpacity: 1
+                    }).addTo(measurementLayer);
+                    
+                    if (isDistanceMeasuring && measurePoints.length >= 2) {
+                        // Draw line and calculate distance
+                        var line = L.polyline(measurePoints, {color: 'red', weight: 3}).addTo(measurementLayer);
+                        
+                        var totalDistance = 0;
+                        for (var i = 1; i < measurePoints.length; i++) {
+                            totalDistance += measurePoints[i-1].distanceTo(measurePoints[i]);
+                        }
+                        
+                        var distanceText = totalDistance > 1000 ? 
+                            (totalDistance/1000).toFixed(2) + ' km' : 
+                            totalDistance.toFixed(1) + ' m';
+                        
+                        L.popup()
+                            .setLatLng(e.latlng)
+                            .setContent('Distanță: ' + distanceText)
+                            .openOn(map);
+                    }
+                    
+                    if (isAreaMeasuring && measurePoints.length >= 3) {
+                        // Draw polygon and calculate area
+                        var polygon = L.polygon(measurePoints, {
+                            color: 'blue',
+                            fillColor: 'blue',
+                            fillOpacity: 0.2,
+                            weight: 3
+                        }).addTo(measurementLayer);
+                        
+                        // Simple area calculation
+                        var area = 0;
+                        var n = measurePoints.length;
+                        for (var i = 0; i < n; i++) {
+                            var j = (i + 1) % n;
+                            area += measurePoints[i].lat * measurePoints[j].lng;
+                            area -= measurePoints[j].lat * measurePoints[i].lng;
+                        }
+                        area = Math.abs(area) / 2 * 111000 * 111000; // rough conversion to m²
+                        
+                        var areaText = area > 10000 ? 
+                            (area/10000).toFixed(2) + ' ha' : 
+                            area.toFixed(1) + ' m²';
+                        
+                        L.popup()
+                            .setLatLng(e.latlng)
+                            .setContent('Suprafață: ' + areaText)
+                            .openOn(map);
+                    }
+                }
+            });
+        }
+
+        // Layer control with mobile optimization
+        setTimeout(function() {
+            var layerControl = L.control.layers(baseLayers, layerGroups, {
+                position: 'topleft',
+                collapsed: window.innerWidth <= 768 // Auto-collapse on mobile
+            }).addTo(map);
+            
+            setupSearch();
+            setupMeasurement();
+            setupLegendCollapse();
+            
+            // Handle orientation change on mobile
+            window.addEventListener('orientationchange', function() {
+                setTimeout(function() {
+                    map.invalidateSize();
+                }, 100);
+            });
+            
+            // Optimize map for mobile touch
+            if (window.innerWidth <= 768) {
+                map.touchZoom.enable();
+                map.doubleClickZoom.enable();
+                map.scrollWheelZoom.disable();
+                map.boxZoom.disable();
+            }
+        }, 3000);
+    </script>
+</body>
+</html>
